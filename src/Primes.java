@@ -19,12 +19,16 @@ public class Primes {
     public static void main(String[] args) {
         if (args.length < 2) {
             System.out.println("Usage: java Primes [Ceiling, highest number to check for] [Number of threads to use, 0 to use number of cores the machine has]");
+            return;
         }
         n = Integer.parseInt(args[0]);
         k = Integer.parseInt(args[1]);
+        if (k == 0) k = Runtime.getRuntime().availableProcessors();
 
         for (int i = 0; i < runs; i++) {
             new Primes(i);
+
+            if (true) return;
         }
 
         Arrays.sort(seqTiming);
@@ -54,6 +58,8 @@ public class Primes {
         seqTiming[run] = (System.nanoTime() - startTime) / 1000000.0;
         System.out.println("Sequential time: " + seqTiming[run] + "ms.");
 
+        if (true) return;
+
         // Do parallel tests
         System.out.println("Starting Parallel");
         startTime = System.nanoTime();
@@ -78,7 +84,20 @@ public class Primes {
      * @param array The byte array to work with.
      */
     private void seq(byte[] array) {
+        int currentPrime = 3; // 2 is marked by default, because we skip even nums.
 
+        double sqrtN = Math.sqrt(n);
+
+        while (currentPrime <= sqrtN) {
+            //System.out.println("Prime found: " + currentPrime);
+
+            flipInRange(array, currentPrime, currentPrime*currentPrime, n);
+            try {
+                currentPrime = findNextPrime(array, currentPrime + 2);
+            } catch (NoMorePrimesException e) {
+                break;
+            }
+        }
     }
 
     /**
@@ -87,6 +106,33 @@ public class Primes {
      */
     private void par(byte[] array) {
 
+    }
+
+    /**
+     * Assuming prime is a prime, flips all numbers divisible by prime between start and stop.
+     * Start and stop values should reflect the assumptions.
+     * @param array The bit array to work with.
+     * @param prime The prime to process.
+     * @param start Start point, inclusive.
+     * @param stop Stop point, exclusive.
+     */
+    public void flipInRange(byte[] array, int prime, int start, int stop) {
+        //System.out.println("flipinrange(" + prime + ", " + start + " to " + stop + ")");
+        if ((prime & 1) == 0) {
+            throw new IllegalArgumentException("Can not have an even prime.");
+        }
+
+        int rest = start % prime;
+        if (rest != 0) {
+            start = start + prime - rest;
+        }
+        if ((start & 1) == 0) {
+            start = start + prime;
+        }
+
+        for (int i = start; i < stop; i += prime*2) {
+            flipBit(array, i);
+        }
     }
 
     /**
@@ -102,6 +148,8 @@ public class Primes {
 
         int cell = i / 16;
         int bit = (i/2) % 8;
+
+        //System.out.println("Flipped " + i);
 
         array[cell] |= (1 << bit);
     }

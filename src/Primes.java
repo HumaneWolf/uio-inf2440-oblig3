@@ -86,9 +86,7 @@ public class Primes {
     private void seq(byte[] array) {
         int currentPrime = 3; // 2 is marked by default, because we skip even nums.
 
-        double sqrtN = Math.sqrt(n);
-
-        while (currentPrime <= sqrtN) {
+        while (currentPrime*currentPrime <= n) {
             //System.out.println("Prime found: " + currentPrime);
 
             flipInRange(array, currentPrime, currentPrime*currentPrime, n);

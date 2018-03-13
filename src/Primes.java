@@ -27,8 +27,6 @@ public class Primes {
 
         for (int i = 0; i < runs; i++) {
             new Primes(i);
-
-            if (true) return;
         }
 
         Arrays.sort(seqTiming);
@@ -57,8 +55,6 @@ public class Primes {
         seq(seqArray);
         seqTiming[run] = (System.nanoTime() - startTime) / 1000000.0;
         System.out.println("Sequential time: " + seqTiming[run] + "ms.");
-
-        if (true) return;
 
         // Do parallel tests
         System.out.println("Starting Parallel");
@@ -103,7 +99,7 @@ public class Primes {
      * @param array The byte array to work with.
      */
     private void par(byte[] array) {
-
+        // Have threads flip.
     }
 
     /**

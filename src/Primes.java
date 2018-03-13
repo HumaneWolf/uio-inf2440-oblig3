@@ -65,14 +65,15 @@ public class Primes {
         System.out.println("Parallel time: " + parTiming[run] + "ms.");
 
         // Check if it is correct.
-        for (int i = 0; i < seqArray.length; i++) {
+        for (int i = 0; i < seqArray.length; i++) { // Primes
             if (seqArray[i] != parArray[i]) {
                 System.out.printf(
-                        "Mismatch at index %d\n\t%s and %s.\n",
+                        "[PRIMES] Mismatch at index %d\n\t%s and %s.\n",
                         i, bitString(seqArray[i]), bitString(parArray[i])
                 );
             }
         }
+        // TODO: Check factors.
     }
 
     /**

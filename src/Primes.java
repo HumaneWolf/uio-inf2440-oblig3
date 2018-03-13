@@ -92,6 +92,8 @@ public class Primes {
                 break;
             }
         }
+
+        // TODO: factorization.
     }
 
     /**
@@ -99,7 +101,81 @@ public class Primes {
      * @param array The byte array to work with.
      */
     private void par(byte[] array) {
-        // Have threads flip.
+        // Sequential start.
+        int currentPrime = 3; // 2 is marked by default, because we skip even nums.
+
+        int sqrtN = (int)Math.sqrt(n);
+
+        // Find all primes in the square root of n, using only the square root of those numbers to generate it..
+        while (currentPrime*currentPrime <= sqrtN) {
+            //System.out.println("Prime found: " + currentPrime);
+
+            flipInRange(array, currentPrime, currentPrime*currentPrime, sqrtN);
+            try {
+                currentPrime = findNextPrime(array, currentPrime + 2);
+            } catch (NoMorePrimesException e) {
+                break;
+            }
+        }
+
+        // Threads doing more flipping work.
+        Thread[] threads = new Thread[k];
+        int segmentSize = ((n - sqrtN) / 16) / k; // (Number of bits to check / nums per byte) / threads
+        // Will need to multiply by 16 before sending as argument, since arguments take bits as input, not byte.
+
+        for (int i = 0; i < k; i++) {
+            int start = sqrtN + ((i * segmentSize) * 16);
+            int stop = start + (segmentSize * 16);
+            stop = (i == (k - 1)) ? n : stop;
+
+            //System.out.println("Thread " + i + " from " + start + " to " + stop);
+
+            threads[i] = new Thread(new Worker(array, start, stop));
+            threads[i].start();
+        }
+
+        for (int i = 0; i < k; i++) {
+            try {
+                threads[i].join();
+            } catch (InterruptedException e) {
+                //e.printStackTrace();
+            }
+        }
+
+        // TODO: factorization.
+    }
+
+    /**
+     * Worker class for parallel solution.
+     */
+    private class Worker implements Runnable {
+        byte[] array;
+        int start, stop;
+
+        Worker(byte[] array, int start, int stop) {
+            this.array = array;
+            this.start = start;
+            this.stop = stop;
+        }
+
+        @Override
+        public void run() {
+            int currentPrime = 3;
+
+            while (currentPrime*currentPrime <= n && currentPrime*currentPrime <= stop) {
+                flipInRange(
+                        array,
+                        currentPrime,
+                        currentPrime*currentPrime > start ? currentPrime*currentPrime : start, // Highest one
+                        stop
+                );
+                try {
+                    currentPrime = findNextPrime(array, currentPrime + 2);
+                } catch (NoMorePrimesException e) {
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -110,7 +186,7 @@ public class Primes {
      * @param start Start point, inclusive.
      * @param stop Stop point, exclusive.
      */
-    public void flipInRange(byte[] array, int prime, int start, int stop) {
+    private void flipInRange(byte[] array, int prime, int start, int stop) {
         //System.out.println("flipinrange(" + prime + ", " + start + " to " + stop + ")");
         if ((prime & 1) == 0) {
             throw new IllegalArgumentException("Can not have an even prime.");
@@ -135,7 +211,7 @@ public class Primes {
      * @param i The number, flips the bit representing this number.
      * @throws IllegalArgumentException If i is not an odd number.
      */
-    public void flipBit(byte[] array, int i) throws IllegalArgumentException {
+    private void flipBit(byte[] array, int i) throws IllegalArgumentException {
         if ((i & 1) == 0) {
             throw new IllegalArgumentException("Can not flip an even bit.");
         }
@@ -155,7 +231,7 @@ public class Primes {
      * @return True if it is a prime number, false otherwise.
      * @throws IllegalArgumentException If i is not an odd number.
      */
-    public boolean isPrime(byte[] array, int i) throws IllegalArgumentException {
+    private boolean isPrime(byte[] array, int i) throws IllegalArgumentException {
         if ((i & 1) == 0) {
             throw new IllegalArgumentException("Can not check an even bit.");
         }
@@ -174,7 +250,7 @@ public class Primes {
      * @throws IllegalArgumentException If startAt is not an odd number.
      * @throws NoMorePrimesException If there are no more primes from startAt to n.
      */
-    public int findNextPrime(byte[] array, int startAt) throws IllegalArgumentException, NoMorePrimesException {
+    private int findNextPrime(byte[] array, int startAt) throws IllegalArgumentException, NoMorePrimesException {
         if ((startAt & 1) == 0) {
             throw new IllegalArgumentException("startAt can not be an even number.");
         }

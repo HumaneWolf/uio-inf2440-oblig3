@@ -1,5 +1,5 @@
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.locks.Lock;
@@ -59,8 +59,8 @@ public class Primes {
         System.out.println("Starting sequential");
         startTime = System.nanoTime();
         byte[] seqArray = new byte[cells];
-        LinkedList<Long>[] seqFactors = new LinkedList[100];
-        for (int i = 0; i < 100; i++) seqFactors[i] = new LinkedList<Long>();
+        ArrayList<Long>[] seqFactors = new ArrayList[100];
+        for (int i = 0; i < 100; i++) seqFactors[i] = new ArrayList<Long>(24);
         seq(seqArray, seqFactors);
         seqTiming[run] = (System.nanoTime() - startTime) / 1000000.0;
         System.out.println("Sequential time: " + seqTiming[run] + "ms.");
@@ -80,8 +80,8 @@ public class Primes {
         System.out.println("Starting Parallel");
         startTime = System.nanoTime();
         byte[] parArray = new byte[cells];
-        LinkedList<Long>[] parFactors = new LinkedList[100];
-        for (int i = 0; i < 100; i++) parFactors[i] = new LinkedList<Long>();
+        ArrayList<Long>[] parFactors = new ArrayList[100];
+        for (int i = 0; i < 100; i++) parFactors[i] = new ArrayList<Long>(24);
         par(parArray, parFactors);
         parTiming[run] = (System.nanoTime() - startTime) / 1000000.0;
         System.out.println("Parallel time: " + parTiming[run] + "ms.");
@@ -129,7 +129,7 @@ public class Primes {
      * Do the algorithm sequentially.
      * @param array The byte array to work with.
      */
-    private void seq(byte[] array, LinkedList<Long>[] factors) {
+    private void seq(byte[] array, ArrayList<Long>[] factors) {
         long currentPrime = 3; // 2 is marked by default, because we skip even nums.
 
         while (currentPrime*currentPrime <= n) {
@@ -152,7 +152,7 @@ public class Primes {
 
             // 2 is an egde case
             while (remain % 2 == 0) {
-                factors[i].push(2L);
+                factors[i].add(2L);
                 remain = remain / 2;
             }
 
@@ -160,14 +160,14 @@ public class Primes {
             long j = 3;
             while ((j * j) < num && remain != 1) {
                 if (remain % j == 0) {
-                    factors[i].push(j);
+                    factors[i].add(j);
                     remain = remain / j;
                 } else {
                     try {
                         j = findNextPrime(array, j + 2);
                     } catch (NoMorePrimesException e) {
                         if (remain != 1) {
-                            factors[i].push(remain);
+                            factors[i].add(remain);
                         }
                         break;
                     }
@@ -180,7 +180,7 @@ public class Primes {
      * Do the algorithm in parallel.
      * @param array The byte array to work with.
      */
-    private void par(byte[] array, LinkedList<Long>[] factors) {
+    private void par(byte[] array, ArrayList<Long>[] factors) {
         // Sequential start.
         long currentPrime = 3; // 2 is marked by default, because we skip even nums.
 
@@ -231,11 +231,11 @@ public class Primes {
         byte[] array;
         int id, start, stop;
 
-        LinkedList<Long>[] factors;
+        ArrayList<Long>[] factors;
         CyclicBarrier cb;
         Lock lock;
 
-        Worker(int id, byte[] array, int start, int stop, LinkedList<Long>[] factors, CyclicBarrier cb, Lock lock) {
+        Worker(int id, byte[] array, int start, int stop, ArrayList<Long>[] factors, CyclicBarrier cb, Lock lock) {
             this.id = id;
 
             this.array = array;
@@ -302,7 +302,7 @@ public class Primes {
                         lock.lock();
                         try {
                             while (localRemain % 2 == 0) {
-                                factors[i].push(2L);
+                                factors[i].add(2L);
                                 globalRemain = globalRemain / 2;
                                 localRemain = globalRemain;
                             }
@@ -335,7 +335,7 @@ public class Primes {
                     if (localRemain % j == 0) {
                         lock.lock();
                         try {
-                            factors[i].push(j);
+                            factors[i].add(j);
                             globalRemain = globalRemain / j;
                             localRemain = globalRemain;
                         } finally {
@@ -343,7 +343,7 @@ public class Primes {
                         }
                     } else {
                         try {
-                            // Skip until the next number to process.
+                            // Skip until the next number this thread should process.
                             for (int l = 0; l < (k - 1); l++) {
                                 j = findNextPrime(array, j + 2);
                             }
@@ -365,7 +365,7 @@ public class Primes {
                 // Add last factor if there is one more.
                 // Because only 1 thread does this and it's between two barriers, this is safe.
                 if (globalRemain != 1 && id == 0) {
-                    factors[i].push(globalRemain);
+                    factors[i].add(globalRemain);
                 }
 
                 // Wait before starting to process the next num.

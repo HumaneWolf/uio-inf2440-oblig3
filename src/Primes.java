@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.LinkedList;
 
 public class Primes {
 
@@ -52,17 +53,43 @@ public class Primes {
         System.out.println("Starting sequential");
         startTime = System.nanoTime();
         byte[] seqArray = new byte[cells];
-        seq(seqArray);
+        LinkedList<Integer>[] seqFactors = new LinkedList[100];
+        for (int i = 0; i < 100; i++) seqFactors[i] = new LinkedList<Integer>();
+        seq(seqArray, seqFactors);
         seqTiming[run] = (System.nanoTime() - startTime) / 1000000.0;
         System.out.println("Sequential time: " + seqTiming[run] + "ms.");
+
+        /* Sequential printing of factors, used for testing purposes.
+        FactorPrintOut fpo = new FactorPrintOut("krishto", n);
+        for (int i = 0; i < seqFactors.length; i++) {
+            Integer[] arr = seqFactors[i].toArray(new Integer[seqFactors[i].size()]);
+            for (int j : arr) {
+                fpo.addFactor((n * n) - 1 - i, j);
+            }
+        }
+        fpo.writeFactors();
+        */
 
         // Do parallel tests
         System.out.println("Starting Parallel");
         startTime = System.nanoTime();
         byte[] parArray = new byte[cells];
-        par(parArray);
+        LinkedList<Integer>[] parFactors = new LinkedList[100];
+        for (int i = 0; i < 100; i++) parFactors[i] = new LinkedList<Integer>();
+        par(parArray, parFactors);
         parTiming[run] = (System.nanoTime() - startTime) / 1000000.0;
         System.out.println("Parallel time: " + parTiming[run] + "ms.");
+
+        // Print parallel factoring results.
+        FactorPrintOut fpo = new FactorPrintOut("krishto", n);
+        for (int i = 0; i < parFactors.length; i++) {
+            Integer[] arr = parFactors[i].toArray(new Integer[parFactors[i].size()]);
+            Arrays.sort(arr);
+            for (int j : arr) {
+                fpo.addFactor((n * n) - 1 - i, j);
+            }
+        }
+        fpo.writeFactors();
 
         // Check if it is correct.
         for (int i = 0; i < seqArray.length; i++) { // Primes
@@ -73,14 +100,28 @@ public class Primes {
                 );
             }
         }
-        // TODO: Check factors.
+
+        // Check if factors match.
+        for (int i = 0; i < seqFactors.length; i++) {
+            Integer[] parArr = parFactors[i].toArray(new Integer[parFactors[i].size()]);
+            Arrays.sort(parArr);
+
+            for (int j = 0; j < seqFactors[i].size(); j++) {
+               if (!parArr[j].equals(seqFactors[i].get(j))) {
+                   System.out.printf(
+                           "[FACTORS] Mismatch at index %d\n\t%d and %d.\n",
+                           i, parArr[j], seqFactors[i].get(j)
+                   );
+               }
+            }
+        }
     }
 
     /**
      * Do the algorithm sequentially.
      * @param array The byte array to work with.
      */
-    private void seq(byte[] array) {
+    private void seq(byte[] array, LinkedList<Integer>[] factors) {
         int currentPrime = 3; // 2 is marked by default, because we skip even nums.
 
         while (currentPrime*currentPrime <= n) {
@@ -94,14 +135,44 @@ public class Primes {
             }
         }
 
-        // TODO: factorization.
+        // Factorize
+        int num;
+        int remain;
+        for (int i = 0; i < 100; i++) {
+            num = (n * n) - 1 - i;
+            remain = num;
+
+            // 2 is an egde case
+            while (remain % 2 == 0) {
+                factors[i].push(2);
+                remain = remain / 2;
+            }
+
+            // General
+            int j = 3;
+            while ((j * j) < num && remain != 1) {
+                if (remain % j == 0) {
+                    factors[i].push(j);
+                    remain = remain / j;
+                } else {
+                    try {
+                        j = findNextPrime(array, j + 2);
+                    } catch (NoMorePrimesException e) {
+                        if (remain != 1) {
+                            factors[i].push(remain);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /**
      * Do the algorithm in parallel.
      * @param array The byte array to work with.
      */
-    private void par(byte[] array) {
+    private void par(byte[] array, LinkedList<Integer>[] factors) {
         // Sequential start.
         int currentPrime = 3; // 2 is marked by default, because we skip even nums.
 
@@ -143,7 +214,7 @@ public class Primes {
             }
         }
 
-        // TODO: factorization.
+        // TODO: Factorization
     }
 
     /**
